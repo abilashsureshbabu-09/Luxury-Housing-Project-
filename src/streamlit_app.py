@@ -34,6 +34,10 @@ def load_data():
         for col in object_cols:
             df[col] = df[col].astype(str)
         
+        # Clean data: Remove rows with invalid prices (negative or zero)
+        df = df[df['ticket_price_inr'] > 0].copy()
+        df = df[df['ticket_price_cr'] > 0].copy()
+        
         return df
     except FileNotFoundError:
         st.error("❌ Data file not found. Ensure 'data/cleaned_luxury_housing.csv' exists.")
@@ -178,25 +182,30 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("Connectivity vs Amenity Scores")
-    # Filter out rows with missing amenity scores
-    df_bubble = df_filtered.dropna(subset=['amenity_score', 'connectivity_score'])
+    # Filter out rows with missing or invalid data
+    df_bubble = df_filtered.dropna(subset=['amenity_score', 'connectivity_score', 'ticket_price_cr'])
+    # Remove invalid prices (negative or zero)
+    df_bubble = df_bubble[(df_bubble['ticket_price_cr'] > 0) & (df_bubble['connectivity_score'] > 0) & (df_bubble['amenity_score'] > 0)]
     
-    if len(df_bubble) > 0:
-        fig_bubble = px.scatter(
-            df_bubble,
-            x='connectivity_score',
-            y='amenity_score',
-            size='ticket_price_cr',
-            color='ticket_price_cr',
-            hover_data=['micro_market', 'project_name'],
-            title="Infrastructure Scores Impact",
-            labels={'connectivity_score': 'Connectivity Score', 'amenity_score': 'Amenity Score'},
-            color_continuous_scale='Portland'
-        )
-        fig_bubble.update_layout(height=400)
-        st.plotly_chart(fig_bubble, use_container_width=True)
+    if len(df_bubble) > 10:
+        try:
+            fig_bubble = px.scatter(
+                df_bubble,
+                x='connectivity_score',
+                y='amenity_score',
+                size='ticket_price_cr',
+                color='ticket_price_cr',
+                hover_data=['micro_market', 'project_name'],
+                title="Infrastructure Scores Impact",
+                labels={'connectivity_score': 'Connectivity Score', 'amenity_score': 'Amenity Score'},
+                color_continuous_scale='Portland'
+            )
+            fig_bubble.update_layout(height=400)
+            st.plotly_chart(fig_bubble, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error creating chart: {str(e)}")
     else:
-        st.info("ℹ️ No data available with complete amenity scores for current filters")
+        st.info("ℹ️ Not enough data with valid amenity scores for current filters")
 
 with col2:
     st.subheader("Buyer Type Analysis")
