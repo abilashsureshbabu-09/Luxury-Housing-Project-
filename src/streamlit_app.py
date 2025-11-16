@@ -178,19 +178,25 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("Connectivity vs Amenity Scores")
-    fig_bubble = px.scatter(
-        df_filtered,
-        x='connectivity_score',
-        y='amenity_score',
-        size='ticket_price_cr',
-        color='ticket_price_cr',
-        hover_data=['micro_market', 'project_name'],
-        title="Infrastructure Scores Impact",
-        labels={'connectivity_score': 'Connectivity Score', 'amenity_score': 'Amenity Score'},
-        color_continuous_scale='Portland'
-    )
-    fig_bubble.update_layout(height=400)
-    st.plotly_chart(fig_bubble, use_container_width=True)
+    # Filter out rows with missing amenity scores
+    df_bubble = df_filtered.dropna(subset=['amenity_score', 'connectivity_score'])
+    
+    if len(df_bubble) > 0:
+        fig_bubble = px.scatter(
+            df_bubble,
+            x='connectivity_score',
+            y='amenity_score',
+            size='ticket_price_cr',
+            color='ticket_price_cr',
+            hover_data=['micro_market', 'project_name'],
+            title="Infrastructure Scores Impact",
+            labels={'connectivity_score': 'Connectivity Score', 'amenity_score': 'Amenity Score'},
+            color_continuous_scale='Portland'
+        )
+        fig_bubble.update_layout(height=400)
+        st.plotly_chart(fig_bubble, use_container_width=True)
+    else:
+        st.info("ℹ️ No data available with complete amenity scores for current filters")
 
 with col2:
     st.subheader("Buyer Type Analysis")
@@ -247,39 +253,48 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("Bedrooms vs Average Price")
     bedroom_price = df_filtered.groupby('bedrooms')['ticket_price_cr'].agg(['mean', 'count']).reset_index()
-    bedroom_price = bedroom_price[bedroom_price['count'] > 10]
+    bedroom_price = bedroom_price[bedroom_price['count'] > 10].sort_values('bedrooms')
     
-    fig_bed = go.Figure()
-    fig_bed.add_trace(go.Bar(
-        x=bedroom_price['bedrooms'],
-        y=bedroom_price['mean'],
-        marker_color='steelblue',
-        name='Avg Price'
-    ))
-    fig_bed.update_layout(
-        title='Average Price by Bedroom Count',
-        xaxis_title='Bedrooms',
-        yaxis_title='Avg Price (₹ Cr)',
-        height=400,
-        showlegend=False
-    )
-    st.plotly_chart(fig_bed, use_container_width=True)
+    if len(bedroom_price) > 0:
+        fig_bed = go.Figure()
+        fig_bed.add_trace(go.Bar(
+            x=bedroom_price['bedrooms'],
+            y=bedroom_price['mean'],
+            marker_color='steelblue',
+            name='Avg Price'
+        ))
+        fig_bed.update_layout(
+            title='Average Price by Bedroom Count',
+            xaxis_title='Bedrooms',
+            yaxis_title='Avg Price (₹ Cr)',
+            height=400,
+            showlegend=False
+        )
+        st.plotly_chart(fig_bed, use_container_width=True)
+    else:
+        st.info("ℹ️ No bedroom data available for current filters")
 
 with col2:
     st.subheader("NRI Buyer Percentage")
     nri_data = df_filtered['nri_buyer'].value_counts()
-    nri_pct = (nri_data['Yes'] / (nri_data['Yes'] + nri_data['No']) * 100) if 'Yes' in nri_data else 0
     
-    fig_nri = go.Figure(data=[
-        go.Pie(
-            labels=['NRI Buyers', 'Local Buyers'],
-            values=[nri_pct, 100 - nri_pct],
-            marker_colors=['#FF6B6B', '#4ECDC4'],
-            hole=0.4
-        )
-    ])
-    fig_nri.update_layout(title=f"NRI Buyer Distribution ({nri_pct:.1f}% NRI)", height=400)
-    st.plotly_chart(fig_nri, use_container_width=True)
+    if len(nri_data) > 0:
+        nri_yes = nri_data.get('Yes', 0)
+        nri_no = nri_data.get('No', 0)
+        nri_pct = (nri_yes / (nri_yes + nri_no) * 100) if (nri_yes + nri_no) > 0 else 0
+        
+        fig_nri = go.Figure(data=[
+            go.Pie(
+                labels=['NRI Buyers', 'Local Buyers'],
+                values=[nri_pct, 100 - nri_pct],
+                marker_colors=['#FF6B6B', '#4ECDC4'],
+                hole=0.4
+            )
+        ])
+        fig_nri.update_layout(title=f"NRI Buyer Distribution ({nri_pct:.1f}% NRI)", height=400)
+        st.plotly_chart(fig_nri, use_container_width=True)
+    else:
+        st.info("ℹ️ No NRI buyer data available for current filters")
 
 # Row 6: Market Trends by Quarter
 col1, col2 = st.columns(2)
