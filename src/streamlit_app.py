@@ -247,11 +247,12 @@ with col1:
 with col2:
     st.subheader("Transaction Type Distribution")
     trans_data = df_filtered['transaction_type'].value_counts()
-    fig_trans = px.donut(
+    fig_trans = px.pie(
         names=trans_data.index,
         values=trans_data.values,
         title="Transaction Types",
-        color_discrete_sequence=px.colors.qualitative.Pastel
+        color_discrete_sequence=px.colors.qualitative.Pastel,
+        hole=0.4
     )
     fig_trans.update_layout(height=400)
     st.plotly_chart(fig_trans, use_container_width=True)
