@@ -31,6 +31,12 @@ def load_data():
             # Fallback to absolute path from script location
             csv_path = Path(__file__).parent.parent / "data" / "cleaned_luxury_housing.csv"
             df = pd.read_csv(csv_path)
+        
+        # Convert object columns to string to fix PyArrow serialization
+        object_cols = df.select_dtypes(include=['object']).columns
+        for col in object_cols:
+            df[col] = df[col].astype(str)
+        
         return df
     except FileNotFoundError:
         st.error("❌ Data file not found. Ensure 'data/cleaned_luxury_housing.csv' exists.")
@@ -101,7 +107,7 @@ with tab1:
                 labels={price_col: "Price (₹)"}
             )
             fig_hist.update_layout(height=400)
-            st.plotly_chart(fig_hist, use_container_width=True)
+            st.plotly_chart(fig_hist, use_container_width=True, key="hist_chart")
         
         with col2:
             st.subheader("Price Box Plot")
@@ -111,7 +117,7 @@ with tab1:
                 yaxis_title="Price (₹)",
                 height=400
             )
-            st.plotly_chart(fig_box, use_container_width=True)
+            st.plotly_chart(fig_box, use_container_width=True, key="box_chart")
 
 with tab2:
     st.subheader("Dataset Overview")
@@ -121,22 +127,24 @@ with tab2:
     col1, col2 = st.columns(2)
     with col1:
         st.write("**Column Types:**")
-        st.dataframe(df_filtered.dtypes)
+        dtypes_df = pd.DataFrame(df_filtered.dtypes.astype(str), columns=['Data Type'])
+        st.dataframe(dtypes_df, use_container_width=True)
     with col2:
         st.write("**Missing Values:**")
         missing = df_filtered.isnull().sum()
         if missing.sum() > 0:
-            st.dataframe(missing[missing > 0])
+            missing_df = pd.DataFrame(missing[missing > 0], columns=['Missing Count'])
+            st.dataframe(missing_df, use_container_width=True)
         else:
             st.info("✅ No missing values found!")
 
 with tab3:
     st.subheader("Statistical Summary")
-    st.dataframe(df_filtered.describe(), use_container_width=True)
+    st.dataframe(df_filtered.describe(), use_container_width=True, key="stats_table")
 
 with tab4:
     st.subheader("Raw Data")
-    st.dataframe(df_filtered, use_container_width=True)
+    st.dataframe(df_filtered, use_container_width=True, key="data_table")
 
 # Footer
 st.markdown("---")
