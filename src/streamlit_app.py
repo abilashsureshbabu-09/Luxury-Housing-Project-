@@ -50,14 +50,14 @@ except Exception as e:
 st.sidebar.header("🔍 Advanced Filters")
 
 # Price filter
-price_min = float(df['ticket_price_inr'].min())
-price_max = float(df['ticket_price_inr'].max())
+price_min = int(df['ticket_price_inr'].min())
+price_max = int(df['ticket_price_inr'].max())
 price_range = st.sidebar.slider(
     "Price Range (₹)",
     min_value=price_min,
     max_value=price_max,
     value=(price_min, price_max),
-    step=1000000
+    step=int((price_max - price_min) / 100) if (price_max - price_min) > 100 else 1
 )
 
 # Configuration filter
